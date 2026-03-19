@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
 type Step = 'account' | 'plant'
 
-export default function SignupPage() {
+// Wrapped in Suspense below because useSearchParams() requires it in Next.js App Router
+function SignupContent() {
   const searchParams = useSearchParams()
   const plan = searchParams.get('plan') ?? 'free'
 
@@ -278,6 +279,14 @@ export default function SignupPage() {
         By creating an account you agree to our Terms of Service and Privacy Policy.
       </p>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }} />}>
+      <SignupContent />
+    </Suspense>
   )
 }
 
