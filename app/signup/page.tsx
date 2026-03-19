@@ -61,7 +61,8 @@ export default function SignupPage() {
     // 2. Create the plant row (service role not available client-side —
     //    we use a Supabase DB function via RPC to atomically create
     //    plant + user_profile in one call, bypassing RLS for setup)
-    const { error: plantError } = await supabase.rpc('create_plant_and_admin', {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: plantError } = await (supabase as any).rpc('create_plant_and_admin', {
       p_plant_name: plantName,
       p_full_name: fullName,
       p_user_id: authData.user.id,
