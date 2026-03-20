@@ -1,18 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { requestAccess } from '@/app/actions/onboarding'
 
 /**
  * /onboarding
- * Shown to users who signed in via OAuth but have no plant association.
- * Lets them request access to a plant by submitting their name.
- * A manager/admin must then approve them.
+ * Shown to authenticated users who have no plant association.
+ * Submits a request to the plant manager for approval.
+ * Manager gets an email with Approve/Deny links.
  */
 export default function OnboardingPage() {
-  const router = useRouter()
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -23,33 +21,16 @@ export default function OnboardingPage() {
     setLoading(true)
     setError('')
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    // Create a pending profile — no plant_id yet, admin will assign
-    const { error: profileError } = await (supabase as any)
-      .from('user_profiles')
-      .upsert({
-        id: user.id,
-        full_name: fullName || user.user_metadata?.name || user.email,
-        role: 'supervisor',
-        status: 'pending',
-        plant_id: null,
-      })
-
-    if (profileError) {
-      setError(profileError.message)
+    try {
+      const fd = new FormData()
+      fd.append('fullName', fullName)
+      await requestAccess(fd)
+      setSubmitted(true)
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    setSubmitted(true)
-    setLoading(false)
   }
 
   if (submitted) {
@@ -57,14 +38,19 @@ export default function OnboardingPage() {
       <Shell>
         <div className="text-center py-4">
           <div className="text-5xl mb-4">⏳</div>
-          <h2 className="text-lg font-bold mb-2">Access Request Sent</h2>
-          <p className="text-sm mb-4" style={{ color: 'var(--foreground-muted)' }}>
-            Your request has been submitted. A plant manager will review and approve your account.
-            You'll be able to log in once approved.
+          <h2 className="text-lg font-bold mb-3">Request Submitted!</h2>
+          <p className="text-sm mb-3" style={{ color: 'var(--foreground-muted)' }}>
+            Your access request has been sent to the plant manager for review.
           </p>
-          <p className="text-xs" style={{ color: 'var(--foreground-subtle)' }}>
-            You can close this window. Check back later or contact your plant manager.
+          <p className="text-sm mb-6" style={{ color: 'var(--foreground-muted)' }}>
+            You'll receive an email once your access has been approved or denied.
           </p>
+          <div
+            className="rounded-lg px-4 py-3 text-xs text-left"
+            style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid var(--amber-dim)', color: 'var(--amber-bright)' }}
+          >
+            📬 Check your email inbox for a confirmation once the manager reviews your request.
+          </div>
         </div>
       </Shell>
     )
@@ -72,10 +58,10 @@ export default function OnboardingPage() {
 
   return (
     <Shell>
-      <h1 className="text-xl font-bold mb-1">Welcome to PassdownPro</h1>
+      <h1 className="text-xl font-bold mb-1">Request Plant Access</h1>
       <p className="text-sm mb-6" style={{ color: 'var(--foreground-muted)' }}>
-        Your account needs to be linked to a plant by a manager before you can access the system.
-        Submit your name below to request access.
+        Your account needs to be approved by a plant manager before you can access reports.
+        Enter your name and we'll send them a notification.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,22 +78,25 @@ export default function OnboardingPage() {
           />
         </div>
         {error && (
-          <p className="text-xs px-3 py-2 rounded-lg" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}>
+          <p
+            className="text-xs px-3 py-2 rounded-lg"
+            style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}
+          >
             {error}
           </p>
         )}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest disabled:opacity-60"
+          className="w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-widest disabled:opacity-60 transition-all"
           style={{ backgroundColor: 'var(--amber-primary)', color: '#0d0d0f' }}
         >
-          {loading ? 'Submitting…' : 'Request Access'}
+          {loading ? 'Sending request…' : 'Request Access →'}
         </button>
       </form>
 
       <p className="text-xs mt-4 text-center" style={{ color: 'var(--foreground-subtle)' }}>
-        Already have access?{' '}
+        Wrong account?{' '}
         <Link href="/login" style={{ color: 'var(--amber-primary)' }}>Sign in with a different account</Link>
       </p>
     </Shell>
