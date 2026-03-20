@@ -1,8 +1,17 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { sendApprovalRequestEmail } from '@/lib/email'
 import crypto from 'crypto'
+
+// Service role client — bypasses RLS, needed for auth.admin calls
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as any
+}
 
 /**
  * Called when a new OAuth user submits the onboarding form.
@@ -56,10 +65,10 @@ export async function requestAccess(formData: FormData) {
     managers = data ?? []
   }
 
-  // Get manager emails from auth.users
+  // Get manager emails via service role (auth.admin requires service role)
+  const serviceClient = getServiceClient()
   for (const manager of managers) {
-    // Use admin API to get their email
-    const { data: authUser } = await supabase.auth.admin.getUserById(manager.id)
+    const { data: authUser } = await serviceClient.auth.admin.getUserById(manager.id)
     const managerEmail = authUser?.user?.email
     if (!managerEmail) continue
 
