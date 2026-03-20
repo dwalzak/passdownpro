@@ -10,22 +10,31 @@ import { createClient } from '@/lib/supabase-server'
  *  - Email confirmation on signup
  *
  * We exchange the code for a session, then redirect to dashboard.
- * For OAuth signups (?signup=true), the plant creation is handled
- * by a separate onboarding step since we don't have plant name yet.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/dashboard'
 
-  if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
-    }
+  // If there's no code at all, something went wrong upstream
+  if (!code) {
+    console.error('[auth/callback] No code in URL params')
+    return NextResponse.redirect(`${origin}/login?error=no_code`)
   }
 
-  // If something went wrong, send back to login with an error hint
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (error) {
+      console.error('[auth/callback] exchangeCodeForSession error:', error.message)
+      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
+    }
+
+    // Success — redirect to dashboard (or the original intended page)
+    return NextResponse.redirect(`${origin}${next}`)
+  } catch (err) {
+    console.error('[auth/callback] Unexpected error:', err)
+    return NextResponse.redirect(`${origin}/login?error=unexpected`)
+  }
 }

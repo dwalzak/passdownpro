@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 // ── Pricing tier data ────────────────────────────────────────────────────────
 const tiers = [
@@ -88,7 +89,18 @@ const highlights = [
   },
 ]
 
-export default function LandingPage() {
+export default function LandingPage({
+  searchParams,
+}: {
+  searchParams: { code?: string; next?: string }
+}) {
+  // OAuth callback lands here when Supabase Site URL is the root domain.
+  // Forward the code to the actual callback handler.
+  if (searchParams?.code) {
+    const next = searchParams.next ? `&next=${encodeURIComponent(searchParams.next)}` : ''
+    redirect(`/auth/callback?code=${searchParams.code}${next}`)
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
 
