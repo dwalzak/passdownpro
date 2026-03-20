@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { SectionHeader } from './ui/SectionHeader'
 import { Field, FieldGroup } from './ui/FieldGroup'
 import type {
@@ -9,6 +9,9 @@ import type {
   DowntimeEvent,
   MaintenanceRequest,
 } from '@/types'
+import { submitShiftReport } from '@/app/actions/shift-reports'
+import { PDFDownloadLink } from '@react-pdf/renderer'
+import { ShiftReportPDF } from './ShiftReportPDF'
 
 // ─── Default/empty form state ────────────────────────────────────────────────
 
@@ -218,6 +221,12 @@ export function ShiftReportForm() {
   const [form, setForm] = useState<ShiftReportFormData>(defaultForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submittedData, setSubmittedData] = useState<ShiftReportFormData | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Generic field updater
   const setField = useCallback(
@@ -265,10 +274,14 @@ export function ShiftReportForm() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      // TODO: wire up to Supabase insert + PDF generation
-      await new Promise((r) => setTimeout(r, 1000)) // simulate async
+      const result = await submitShiftReport(form)
+      console.log('✅ Report submitted successfully!', result)
+      setSubmittedData({ ...form }) // capture data for PDF
       setSubmitSuccess(true)
       setForm(defaultForm)
+    } catch (err: any) {
+      console.error('❌ Error submitting report:', err.message)
+      alert(`Submission failed: ${err.message}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -287,13 +300,26 @@ export function ShiftReportForm() {
         <p className="text-sm mb-6" style={{ color: 'var(--foreground-muted)' }}>
           Your report has been saved. PDF generation coming soon.
         </p>
-        <button
-          onClick={() => setSubmitSuccess(false)}
-          className="px-5 py-2 rounded-lg text-sm font-semibold"
-          style={{ backgroundColor: 'var(--amber-primary)', color: '#0d0d0f' }}
-        >
-          New Report
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+          {isClient && submittedData && (
+            <PDFDownloadLink
+              document={<ShiftReportPDF report={submittedData} />}
+              fileName={`ShiftReport_${submittedData.date}_${submittedData.shift}.pdf`}
+              className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              style={{ backgroundColor: 'var(--amber-primary)', color: '#000' }}
+            >
+              {({ loading }) => (loading ? 'Generating PDF...' : '⬇️ Download PDF Report')}
+            </PDFDownloadLink>
+          )}
+
+          <button
+            onClick={() => setSubmitSuccess(false)}
+            className="px-5 py-2 rounded-lg text-sm font-semibold"
+            style={{ backgroundColor: 'var(--amber-primary)', color: '#0d0d0f' }}
+          >
+            New Report
+          </button>
+        </div>
       </div>
     )
   }

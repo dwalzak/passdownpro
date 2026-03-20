@@ -128,3 +128,8 @@ Stripe Billing for subscriptions. Developer already has a Stripe account. No usa
 - Use `/compact` if context gets long before switching tasks
 - Prefer creating files over inline code dumps
 - Dev server: `npm run dev` — runs on port 3001
+
+---
+
+## Automation Rules
+- **Automatic Git Push**: After every significant change or group of work, always stage all changes, commit with a descriptive message, and push to `https://github.com/dwalzak/passdownpro`.
