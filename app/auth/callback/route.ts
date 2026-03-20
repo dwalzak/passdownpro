@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createServerComponentClient } from '@/lib/supabase-server'
+import { createClient } from '@/lib/supabase-server'
 
 /**
  * /auth/callback
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    const supabase = await createServerComponentClient()
+    const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
