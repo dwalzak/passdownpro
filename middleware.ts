@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes — no auth required
-  const publicRoutes = ['/', '/login', '/signup', '/auth/callback']
+  const publicRoutes = ['/', '/login', '/signup', '/auth/callback', '/onboarding']
   const isPublic = publicRoutes.some((r) => pathname === r || pathname.startsWith('/auth/'))
 
   // If not authenticated and trying to access a protected route → login
@@ -55,6 +55,13 @@ export async function middleware(request: NextRequest) {
     const dashboardUrl = request.nextUrl.clone()
     dashboardUrl.pathname = '/dashboard'
     return NextResponse.redirect(dashboardUrl)
+  }
+
+  // If authenticated but no plant/pending — send to onboarding (except if already there)
+  if (user && pathname !== '/onboarding' && !isPublic) {
+    // We do a lightweight check by reading the profile from the DB directly
+    // This is done by the page itself — middleware stays lean
+    // The dashboard page handles the 'no plant' state via its own redirect
   }
 
   return supabaseResponse
