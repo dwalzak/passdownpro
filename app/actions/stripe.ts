@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation'
  * Create a Stripe checkout session for a subscription upgrade.
  */
 export async function createCheckoutSession(priceId: string, plantId: string) {
-  const supabase = await createClient()
+  const supabase = (await createClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
@@ -67,7 +67,7 @@ export async function createCheckoutSession(priceId: string, plantId: string) {
  * Create a Stripe billing portal session so users can manage their subscription.
  */
 export async function createPortalSession(plantId: string) {
-  const supabase = await createClient()
+  const supabase = (await createClient()) as any
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
