@@ -70,7 +70,7 @@ export interface Plant {
 
 // ─── User Profile ────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'supervisor' | 'viewer'
+export type UserRole = 'admin' | 'manager' | 'supervisor' | 'viewer'
 
 export interface UserProfile {
   id: string

@@ -9,9 +9,10 @@ import type {
   DowntimeEvent,
   MaintenanceRequest,
 } from '@/types'
-import { submitShiftReport } from '@/app/actions/shift-reports'
+import { submitShiftReport, updateShiftReport } from '@/app/actions/shift-reports'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { ShiftReportPDF } from './ShiftReportPDF'
+import { useRouter } from 'next/navigation'
 
 // ─── Default/empty form state ────────────────────────────────────────────────
 
@@ -198,7 +199,7 @@ function AddButton({ onClick, children }: { onClick: () => void; children: React
 
 // ─── Submit button ────────────────────────────────────────────────────────────
 
-function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
+function SubmitButton({ isSubmitting, isEdit }: { isSubmitting: boolean; isEdit: boolean }) {
   return (
     <button
       type="submit"
@@ -210,15 +211,22 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
         cursor: isSubmitting ? 'not-allowed' : 'pointer',
       }}
     >
-      {isSubmitting ? 'Submitting…' : 'Submit Shift Report'}
+      {isSubmitting ? 'Processing…' : isEdit ? 'Save Changes' : 'Submit Shift Report'}
     </button>
   )
 }
 
 // ─── Main Form Component ──────────────────────────────────────────────────────
 
-export function ShiftReportForm() {
-  const [form, setForm] = useState<ShiftReportFormData>(defaultForm)
+export function ShiftReportForm({ 
+  initialData, 
+  reportId 
+}: { 
+  initialData?: ShiftReportFormData
+  reportId?: string 
+}) {
+  const router = useRouter()
+  const [form, setForm] = useState<ShiftReportFormData>(initialData || defaultForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submittedData, setSubmittedData] = useState<ShiftReportFormData | null>(null)
@@ -274,6 +282,13 @@ export function ShiftReportForm() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
+      if (reportId) {
+        await updateShiftReport(reportId, form)
+        console.log('✅ Report updated successfully!')
+        router.push(`/report/${reportId}`)
+        return 
+      }
+      
       const result = await submitShiftReport(form)
       console.log('✅ Report submitted successfully!', result)
       setSubmittedData({ ...form }) // capture data for PDF
@@ -563,9 +578,9 @@ export function ShiftReportForm() {
 
       {/* ── Submit ───────────────────────────────────────────────────────── */}
       <div className="pt-2">
-        <SubmitButton isSubmitting={isSubmitting} />
+        <SubmitButton isSubmitting={isSubmitting} isEdit={!!reportId} />
         <p className="text-center text-xs mt-2" style={{ color: 'var(--foreground-subtle)' }}>
-          Report will be saved and a PDF will be generated for download.
+          {reportId ? 'Changes will be logged in the audit trail.' : 'Report will be saved and a PDF will be generated.'}
         </p>
       </div>
 
