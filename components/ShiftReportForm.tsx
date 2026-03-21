@@ -283,13 +283,20 @@ export function ShiftReportForm({
     setIsSubmitting(true)
     try {
       if (reportId) {
-        await updateShiftReport(reportId, form)
+        const updateRes = await updateShiftReport(reportId, form)
+        if (!updateRes.success) {
+          throw new Error(updateRes.error)
+        }
         console.log('✅ Report updated successfully!')
         router.push(`/report/${reportId}`)
         return 
       }
       
       const result = await submitShiftReport(form)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      
       console.log('✅ Report submitted successfully!', result)
       setSubmittedData({ ...form }) // capture data for PDF
       setSubmitSuccess(true)
